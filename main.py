@@ -102,3 +102,84 @@ for sample in notcar_samples:
 
 visualize_images(car_images, num_images, "Example Car images")
 visualize_images(notcar_images, num_images, "Example not-car images")
+
+
+def convert_color(img, conv='RGB2YCrCb'):
+    """
+    Convert the image from one color space to the other
+    """
+    if conv == 'RGB2YCrCb':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+    if conv == 'BGR2YCrCb':
+        return cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+    if conv == 'RGB2LUV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+    if conv == 'RGB2HLS':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    if conv == 'RGB2HSV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    if conv == 'Gray':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    if conv == 'RGB2YUV':
+        return cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+
+ # Plot the examples
+fig = plt.figure()
+plt.subplot(141)
+yuv_image = convert_color(car_images[1], 'RGB2YUV')
+plt.imshow(yuv_image[:,:,0], cmap ="gray")
+plt.title('Y channel')
+plt.subplot(142)
+plt.imshow(yuv_image[:,:,1], cmap ="gray")
+plt.title('U Channel')
+plt.subplot(143)
+plt.imshow(yuv_image[:,:,2], cmap ="gray")
+plt.title('V Channel')
+plt.subplot(144)
+plt.imshow(yuv_image)
+plt.title('YUV')
+
+from skimage.feature import hog
+
+def get_hog_features(img, orient, pix_per_cell, cell_per_block, 
+                        vis=False, feature_vec=True):
+    """
+    Return the hog features of the given input image
+    Call with two outputs if vis==True"""
+    if vis == True:
+        features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=True, 
+                                  visualize=vis, feature_vector=feature_vec)
+        return features, hog_image
+    # Otherwise call with one output
+    else:      
+        features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=True, 
+                       visualize=vis, feature_vector=feature_vec)
+        return features
+
+orient = 9
+pix_per_cell = 8  #8*8
+cell_per_block = 2  #2*2
+
+#notes:
+#get_hog_features() only accepts greyscale images 
+#else we will calculate hog for every channel R G B     
+
+car_features, hog_image = get_hog_features(cv2.cvtColor(car_images[1], cv2.COLOR_RGB2GRAY), orient, pix_per_cell, cell_per_block, 
+                        vis=True, feature_vec=True)
+
+notcar_features, notcar_hog_image = get_hog_features(cv2.cvtColor(notcar_images[2], cv2.COLOR_RGB2GRAY), orient, pix_per_cell, cell_per_block, 
+                        vis=True, feature_vec=True)
+
+# Plot the examples
+fig = plt.figure()
+plt.subplot(131)
+plt.imshow(car_images[1])
+plt.title('Car Image')
+plt.subplot(132)
+plt.imshow(hog_image, cmap='gray')
+plt.title('car HOG')
+plt.subplot(133)
+plt.imshow(notcar_hog_image, cmap='gray')
+plt.title('not car HOG')

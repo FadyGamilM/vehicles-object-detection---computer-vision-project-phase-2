@@ -34,11 +34,11 @@
  - Windows 
     * In the terminal (cmd):
         ``` 
-          python main.py 0 INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH
-          python main.py 1 INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH
+          python main.py INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH 0
+          python main.py INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH 1
         ```
     * if you want to run in shell script => you must run on Git Bash terminal
         ``` 
-          sh script.sh 0 INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH
-          sh script.sh 1 INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH
+          sh script.sh INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH 0
+          sh script.sh INPUT_VIDEO_PATH OUTPUT_VIDEO_PATH 1
         ```

@@ -11,3 +11,17 @@
 ![1](3.png)
 ![1](4.png)
 ![1](5-white.png)
+
+
+### Explanation of our code
+##### Feature Extraction:
+![1](1-featureExtraction.png)
+
+##### Data Processing
+![2](2-DataProcessing.png)
+
+##### Finding and detecting cars
+![3](3-FindCar.png)
+
+##### Get Reactangle method
+![4](4-GetRectangles.png)

@@ -223,4 +223,161 @@ def draw_labeled_bboxes(img, labels):
     return result_rectangles, img_copy
 
 
+def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
+    # Make a copy of the image
+    imcopy = np.copy(img)
+    random_color = False
+    # Iterate through the bounding boxes
+    for bbox in bboxes:
+        if color == 'random' or random_color:
+            color = (np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255))
+            random_color = True
+        # Draw a rectangle given bbox coordinates
+        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+        # cv2.rectangle(imcopy, (bbox[0][0]-100,bbox[0][1]-100), (bbox[1][0]+100,bbox[1][1]+100), color, thick)
+    # Return the image copy with boxes drawn
+    return imcopy
+
+class DetectionInfo():
+    def __init__(self):
+        self.max_size = 10
+        self.old_bboxes = queue.Queue(self.max_size) 
+        self.heatmap = np.zeros_like(test_images[0][:, :, 0])
+
+    #added 
+    def draw_heat_map(self, bboxes):
+        heat_img = np.zeros_like(test_images[0][:, :, 0])
+        heat_img = add_heat(heat_img, bboxes) #bbt3at numpy array of zeros wel return byb2a (Add += 1 for all pixels inside each bbox) y3ni ha5od el gowa el boxes bs ba2i el sora b zeros
+        
+        # heat_img = apply_threshold(heat_img, 2) 
+        return heat_img
+
+    #added
+    def draw_all_boxes(self, image, bboxes):
+        all_boxes = draw_boxes(image, bboxes, color='random', thick=3) 
+        return all_boxes
+
+    def get_heatmap(self):
+        self.heatmap = np.zeros_like(test_images[0][:, :, 0])
+        if self.old_bboxes.qsize() == self.max_size:
+            for bboxes in list(self.old_bboxes.queue):
+                self.heatmap = add_heat(self.heatmap, bboxes)
+                #self.heatmap = apply_threshold(self.heatmap, 2)
+            self.heatmap = apply_threshold(self.heatmap, 20)
+        return self.heatmap
+    
+    def get_labels(self):
+        return label(self.get_heatmap())
+
+
+        # def get_labels(self):
+        #     hm = self.get_heatmap()
+        # return hm,label(hm)    
+        
+    def add_bboxes(self, bboxes):
+        if len(bboxes) < 1:
+            return
+        if self.old_bboxes.qsize() == self.max_size:
+            self.old_bboxes.get()
+        self.old_bboxes.put(bboxes)
+
+detection_info = DetectionInfo()
+
+#test
+def find_vehicles_debug(image):
+    # height, width = 1080, 1920
+    # FinalScreen = np.zeros((height, width, 3), dtype=np.uint8)
+    out_img = np.copy(image)
+
+    bboxes = get_rectangles(image) 
+    detection_info.add_bboxes(bboxes)
+    
+    all_boxes = detection_info.draw_all_boxes(out_img, bboxes) ###########
+    # cv2.putText(all_boxes, 'Predicted boxes',(50,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2)
+    # FinalScreen[0:1080,1280:1920] = cv2.resize(all_boxes, (640,540), interpolation=cv2.INTER_AREA)
+
+
+    heat_img = detection_info.draw_heat_map(bboxes) ############
+    # heat_img = heat_img.reshape(heat_img[0], heat_img[1], 3) #####
+    # cv2.putText(heat_img, 'Bird Eye View Frame',(50,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2)
+    # FinalScreen[540:1080,1280:1920] = cv2.resize(heat_img, (640,360), interpolation=cv2.INTER_AREA)
+
+
+    labels = detection_info.get_labels()
+    if len(labels) == 0:
+        result_image = image
+    else:
+        bboxes, result_image = draw_labeled_bboxes(image,labels)
+
+    # cv2.putText(result_image, 'Final Video',(50,50),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2)
+    # FinalScreen[0:1080,0:1280] = cv2.resize(result_image, (1280,720), interpolation=cv2.INTER_AREA)
+    
+    #result = combine_images(result_image, all_boxes, heat_img, heat_img, heat_img, heat_img)
+    result = combine_images(result_image, all_boxes, heat_img)
+    return result
+    # return result_image
+
+def find_vehicles(image):
+    bboxes = get_rectangles(image) 
+    detection_info.add_bboxes(bboxes)
+    labels = detection_info.get_labels()
+    if len(labels) == 0:
+        result_image = image
+    else:
+        bboxes, result_image = draw_labeled_bboxes(image,labels)
+
+    return result_image
+
+def combine_images( big_image, small1, small2):        
+        
+        background = np.zeros_like(big_image)
+        large_img_size = (background.shape[1],int(0.75*background.shape[0])) 
+        small_img_size=(int(background.shape[1]/2),int(0.25*background.shape[0]))
+        small_img_x_offset=0 
+        small_img_y_offset=0
+
+        img2 = cv2.resize(np.dstack((small2, small2, small2))*255, small_img_size)
+        img1 = cv2.resize(small1, small_img_size)
+        img3 = cv2.resize(big_image, large_img_size)
+
+        background[0: small_img_size[1], 0: small_img_size[0]] = img2
+        
+        start_offset_y = small_img_y_offset 
+        endy = start_offset_y + small_img_size[1]
+        if endy > background.shape[0]:
+          endy = background.shape[0]
+        start_offset_x = 2 * small_img_x_offset + small_img_size[0]
+        endx = start_offset_x + small_img_size[0]
+        if endx > background.shape[1]:
+          endx = background.shape[1]
+        background[start_offset_y:endy , start_offset_x: endx] = img1
+
+        background[int(0.25*background.shape[0]): , : ] = img3
+         
+        return background
+
+
+def create_video(in_path, out_path, mode):
+  detection_info.old_heatmap = np.zeros_like(test_images[0][:, :, 0])
+  project_video_path = in_path
+  project_video_output = out_path
+
+  project_video = VideoFileClip(project_video_path)
+  if mode == '0' :
+    white_clip = project_video.fl_image(find_vehicles) #NOTE: this function expects color images!!
+    white_clip.write_videofile(project_video_output, audio=False)
+  elif mode == '1':
+    white_clip = project_video.fl_image(find_vehicles_debug) #NOTE: this function expects color images!!
+    white_clip.write_videofile(project_video_output, audio=False)
+
+
+
+def main():
+    mode = sys.argv[3]
+    in_path = sys.argv[1]
+    out_path = sys.argv[2]
+    create_video(in_path,out_path,mode)
+
+if __name__ == "__main__":
+    main()
 
